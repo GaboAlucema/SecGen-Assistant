@@ -15,7 +15,7 @@ export default function DiffViewer({
         language={language}
         original={original}
         modified={modified}
-        theme="vs-dark"
+        theme="vs-light"
         options={{
           readOnly: true,
           renderSideBySide: true,
