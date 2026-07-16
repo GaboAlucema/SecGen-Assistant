@@ -1,32 +1,32 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        coral: {
-          bg: "#FAECE7",
-          mid: "#F0997B",
-          strong: "#D85A30",
-          text: "#4A1B0C",
+        brandBlue: "#4DABF7",   // Azul cielo vibrante
+        bgGeneral: "#F8F9FA",   // Fondo blanco grisáceo
+        textDark: "#212529",    // Gris oscuro para lectura
+        alert: {
+          bg: "#FFF5F5",        // Fondo rosa muy claro
+          main: "#FF6B6B",      // Rojo coral alerta
         },
-        greenP: {
-          bg: "#EAF3DE",
-          text: "#3B6D11",
-          border: "#C0DD97",
+        warn: {
+          bg: "#FFF9DB",        // Fondo amarillo suave
+          main: "#FFD43B",      // Amarillo brillante
+          text: "#B38600",      // Amarillo oscuro para legibilidad de texto
         },
-        redP: {
-          bg: "#FCEBEB",
-          text: "#A32D2D",
-          border: "#F7C1C1",
+        safe: {
+          bg: "#E6FCF5",        // Fondo menta suave
+          main: "#20C997",      // Verde menta encendido
         },
-        grayP: {
-          bg: "#F1EFE8",
-          border: "#D3D1C7",
-          text: "#5F5E5A",
-          dark: "#2C2C2A",
+        ui: {
+          border: "#DEE2E6",    // Bordes limpios
+          textMuted: "#868E96"  // Texto secundario
         },
       },
     },
