@@ -1,32 +1,29 @@
-version: "3.9"
+version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: secgen-backend
+    build: ./backend
+    container_name: secgen_backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
+    env_file:
+      - .env
     networks:
       - secgen-network
+    restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: secgen-frontend
+    build: ./frontend
+    container_name: secgen_frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    env_file:
+      - .env
     depends_on:
       - backend
     networks:
       - secgen-network
+    restart: unless-stopped
 
 networks:
   secgen-network:
