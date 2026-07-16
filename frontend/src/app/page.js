@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import CodeEditor from "@/components/CodeEditor";
 import DiffViewer from "@/components/DiffViewer";
 
@@ -52,73 +52,28 @@ export default function Home() {
     setError(null);
     setResult(null);
 
-    // ==========================================
-    // INICIO DEL MOCK (SIMULACIÓN DE RESPUESTA)
-    // ==========================================
-    setTimeout(() => {
-      const mockResponse = {
-        resumen: "Análisis completado. Se detectaron 2 vulnerabilidades en el código.",
-        vulnerabilidades: [
-          {
-            id: "VULN-001",
-            nombre: "Inyección SQL (SQLi) por concatenación de strings",
-            severidad: "Crítico",
-            cwe: "CWE-89",
-            descripcion: "El fragmento de código construye una consulta SQL concatenando directamente las entradas del usuario, lo que expone a la base de datos a ataques de inyección.",
-            vector: "Un atacante podría ingresar `' OR '1'='1` en el campo `user` provocando que la base de datos evalúe la condición como verdadera y permita eludir la autenticación.",
-            linea_original: "query = f\"SELECT * FROM users WHERE user='{user}' AND pwd='{pwd}'\"",
-            linea_parcheada: "query = \"SELECT * FROM users WHERE user=%s AND pwd=%s\"\ncursor.execute(query, (user, pwd))",
-            explicacion_parche: "El uso de consultas parametrizadas (o Prepared Statements) delega la sanitización de los inputs al driver de la base de datos, imposibilitando que las variables sean interpretadas como comandos SQL."
-          },
-          {
-            id: "VULN-002",
-            nombre: "Credenciales en texto plano (Hardcoded Secrets)",
-            severidad: "Alto",
-            cwe: "CWE-798",
-            descripcion: "Se detectaron credenciales sensibles estáticas directamente en el código fuente.",
-            vector: "Cualquier individuo con acceso al repositorio o al archivo fuente puede extraer y utilizar estas credenciales sin autorización.",
-            linea_original: "DB_PASS = 'super_secret_1234!'",
-            linea_parcheada: "import os\nDB_PASS = os.getenv('DB_PASSWORD')",
-            explicacion_parche: "Las credenciales deben inyectarse de forma segura utilizando variables de entorno y no deben versionarse en el repositorio de código."
-          }
-        ],
-        codigo_original: code,
-        // Un parche rápido simulado para que el DiffViewer tenga algo que mostrar
-        codigo_parcheado: code + "\n\n# --- Código securizado por SecGen Assistant ---\n# Se han aplicado los parches recomendados."
-      };
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/audit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, language }),
+      });
 
-      setResult(mockResponse);
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => null);
+        throw new Error(errBody?.detail || `Error del servidor: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setResult(data);
       setSelVuln(0);
       setActiveTab("vulns");
+    } catch (err) {
+      setError(err.message || "Error de conexión con el Backend. Verifica si el contenedor está corriendo");
+    } finally {
       setIsLoading(false);
-    }, 1500);
-
-  // const handleSubmit = async () => {
-  //   if (!code.trim()) return;
-  //   setIsLoading(true);
-  //   setError(null);
-  //   setResult(null); 
-
-  //   try {
-  //     const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/audit" || "http://localhost:8000/api/audit", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ code, language }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`Error del servidor: ${response.status}`);
-  //     }
-
-  //     const data = await response.json();
-  //     setResult(data);
-  //     setSelVuln(0);
-  //     setActiveTab("vulns");
-  //   } catch (err) {
-  //     setError("Error de conexión con el Backend. Verifica si el contenedor está corriendo");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
+    }
   };
 
   const v = result?.vulnerabilidades?.[selVuln];
