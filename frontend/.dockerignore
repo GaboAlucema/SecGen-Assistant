@@ -1,0 +1,20 @@
+# Entornos y Secretos
+.env
+.env.*
+
+# Control de Versiones
+.git
+.gitignore
+
+# Dependencias Locales (Frontend)
+node_modules/
+.next/
+out/
+build/
+
+# Dependencias Locales (Backend)
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
