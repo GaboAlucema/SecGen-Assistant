@@ -54,14 +54,17 @@ export default function Home() {
     setResult(null);
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/audit" || "http://localhost:8000/api/audit", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      const response = await fetch(`${baseUrl}/api/audit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, language }),
       });
 
       if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Error del servidor: ${response.status}`);
       }
 
       const data = await response.json();
@@ -69,7 +72,7 @@ export default function Home() {
       setSelVuln(0);
       setActiveTab("vulns");
     } catch (err) {
-      setError("Error de conexión con el Backend (Edge AI). Verifica si el contenedor de FastAPI está corriendo.");
+      setError("Error desconocido a cntactar con el backend.");
     } finally {
       setIsLoading(false);
     }
