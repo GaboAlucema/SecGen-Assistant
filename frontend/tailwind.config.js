@@ -8,26 +8,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brandBlue: "#4DABF7",   // Azul cielo vibrante
-        bgGeneral: "#F8F9FA",   // Fondo blanco grisáceo
-        textDark: "#212529",    // Gris oscuro para lectura
-        alert: {
-          bg: "#FFF5F5",        // Fondo rosa muy claro
-          main: "#FF6B6B",      // Rojo coral alerta
-        },
-        warn: {
-          bg: "#FFF9DB",        // Fondo amarillo suave
-          main: "#FFD43B",      // Amarillo brillante
-          text: "#B38600",      // Amarillo oscuro para legibilidad de texto
-        },
-        safe: {
-          bg: "#E6FCF5",        // Fondo menta suave
-          main: "#20C997",      // Verde menta encendido
-        },
-        ui: {
-          border: "#DEE2E6",    // Bordes limpios
-          textMuted: "#868E96"  // Texto secundario
-        },
+        brand: "#3B82F6",       // Azul vibrante
+        alert: "#EF4444",       // Rojo crítico
+        warn: "#F59E0B",        // Ámbar/Riesgo medio
+        safe: "#10B981",        // Verde esmeralda/Éxito
+
+        bgApp: "#F8FAFC",       // Fondo general (Blanco azulado)
+        bgCard: "#FFFFFF",      // Fondo de tarjetas/bloques
+
+        textMain: "#0F172A",    // Azul pizarra muy oscuro
+        textMuted: "#64748B",   // Gris azulado
+
+        uiBorder: "#E2E8F0",    // Borde suave en tono slate
       },
     },
   },
