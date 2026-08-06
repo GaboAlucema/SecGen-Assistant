@@ -1,5 +1,5 @@
 import json
-import OWASP
+import os
 import requests
 
 from core.schemas import PromptResponse
@@ -37,7 +37,7 @@ igual al código original."""
 class LLMService:
     def __init__(self, base_url: str | None = None, model: str | None = None):
         self.base_url = (base_url or os.getenv("OLLAMA_URL", "http://localhost:11434")).rstrip("/")
-        self.model = model or os.getenv("OLLAMA_MODEL", "secgen-senior")
+        self.model = model or os.getenv("MODEL_NAME", "secgen-senior")
 
     def generate(self, code: str, language: str) -> PromptResponse:
         response = requests.post(
@@ -46,7 +46,6 @@ class LLMService:
                 "model": self.model,
                 "system": SYSTEM_PROMPT,
                 "prompt": f"Lenguaje: {language}\n\n<USER_CODE>\n{code}\n<USER_CODE>",
-                "format": "json",
                 "stream": False,
             },
             timeout=300,
@@ -65,7 +64,7 @@ class LLMService:
 
         cleaned_text = cleaned_text.strip()
 
-        data = json.loads(response.json()["response"])
+        data = json.loads(cleaned_text)
         data["codigo_original"] = code
         data.setdefault("codigo_parcheado", code)
         return PromptResponse(**data)

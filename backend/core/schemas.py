@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class PromptRequest(BaseModel):
-    code: str = field(..., max_length=15000, description="Código fuente a auditar")
+    code: str = Field(..., max_length=15000, description="Código fuente a auditar")
     language: str = Field(..., max_length=50, description="Lenguage de programación")
 
 
