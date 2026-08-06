@@ -1,8 +1,12 @@
 import json
+import logging
 import os
+import re
 import requests
 
 from core.schemas import PromptResponse
+
+logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT = """Eres un auditor de seguridad de código senior (AppSec). Analiza el código \
@@ -40,17 +44,21 @@ class LLMService:
         self.model = model or os.getenv("MODEL_NAME", "secgen-senior")
 
     def generate(self, code: str, language: str) -> PromptResponse:
-        response = requests.post(
-            f"{self.base_url}/api/generate",
-            json={
-                "model": self.model,
-                "system": SYSTEM_PROMPT,
-                "prompt": f"Lenguaje: {language}\n\n<USER_CODE>\n{code}\n<USER_CODE>",
-                "stream": False,
-            },
-            timeout=300,
-        )
-        response.raise_for_status()
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "system": SYSTEM_PROMPT,
+                    "prompt": f"Lenguaje: {language}\n\n<USER_CODE>\n{code}\n<USER_CODE>",
+                    "stream": False,
+                },
+                timeout=300,
+            )
+            response.raise_for_status()
+        except requests.RequestException:
+            logger.error("Fallo al contactar al motor de inferencia (Ollama) en %s", self.base_url)
+            raise
 
         raw_text = response.json().get("response", "")
         cleaned_text = raw_text.strip()
@@ -58,13 +66,21 @@ class LLMService:
             cleaned_text = cleaned_text[7:]
         elif cleaned_text.startswith("```"):
             cleaned_text = cleaned_text[3:]
-        
+
         if cleaned_text.endswith("```"):
             cleaned_text = cleaned_text[:-3]
 
         cleaned_text = cleaned_text.strip()
 
-        data = json.loads(cleaned_text)
+        match = re.search(r"\{.*\}", cleaned_text, re.DOTALL)
+        json_text = match.group(0) if match else cleaned_text
+
+        try:
+            data = json.loads(json_text)
+        except json.JSONDecodeError:
+            logger.error("No se pudo parsear la respuesta JSON del LLM: %s", cleaned_text)
+            raise
+
         data["codigo_original"] = code
         data.setdefault("codigo_parcheado", code)
         return PromptResponse(**data)
