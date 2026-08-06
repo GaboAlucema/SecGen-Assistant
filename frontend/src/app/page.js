@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Shield, FolderUp, Play, AlertTriangle, ShieldCheck } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import DiffViewer from "@/components/DiffViewer";
 
@@ -16,9 +17,9 @@ const LANGUAGES = [
 // Nueva paleta mapeada a las severidades OWASP
 const SEV = {
   Crítico: { bg: "bg-alert-bg", text: "text-alert-main", border: "border-alert-main", dot: "bg-alert-main" },
-  Alto:    { bg: "bg-orange-50", text: "text-orange-500", border: "border-orange-400", dot: "bg-orange-500" }, // Tono intermedio nativo de Tailwind
-  Medio:   { bg: "bg-warn-bg", text: "text-warn-text", border: "border-warn-main", dot: "bg-warn-main" },
-  Bajo:    { bg: "bg-safe-bg", text: "text-safe-main", border: "border-safe-main", dot: "bg-safe-main" },
+  Alto: { bg: "bg-orange-50", text: "text-orange-500", border: "border-orange-400", dot: "bg-orange-500" }, // Tono intermedio nativo de Tailwind
+  Medio: { bg: "bg-warn-bg", text: "text-warn-text", border: "border-warn-main", dot: "bg-warn-main" },
+  Bajo: { bg: "bg-safe-bg", text: "text-safe-main", border: "border-safe-main", dot: "bg-safe-main" },
 };
 
 export default function Home() {
@@ -29,7 +30,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("vulns");
   const [selVuln, setSelVuln] = useState(0);
-  
+
   const fileRef = useRef(null);
   const resultsRef = useRef(null);
 
@@ -45,6 +46,7 @@ export default function Home() {
     const reader = new FileReader();
     reader.onload = (ev) => setCode(ev.target.result);
     reader.readAsText(file);
+    e.target.value = "";
   };
 
   const handleSubmit = async () => {
@@ -72,208 +74,237 @@ export default function Home() {
       setSelVuln(0);
       setActiveTab("vulns");
     } catch (err) {
-      setError("Error desconocido a cntactar con el backend.");
+      setError(err.message || "Error desconocido al contactar con el backend.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const v = result?.vulnerabilidades?.[selVuln];
+  const vulnCount = result?.vulnerabilidades?.lenght ?? 0;
 
   return (
-    <div className="min-h-screen bg-bgGeneral font-sans text-textDark">
-      {/* HEADER */}
-      <header className="border-b border-ui-border bg-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 border border-brandBlue text-xl">
-            🛡️
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-textDark leading-tight">SecGen Assistant</h1>
-            <p className="text-xs text-ui-textMuted">Auditor AppSec · Edge AI</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 rounded-full bg-safe-bg border border-safe-main px-3 py-1">
-          <span className="text-xs">🔒</span>
-          <span className="text-xs font-medium text-safe-main">Código Privado</span>
-        </div>
-      </header>
+    <main className="min-h-screen bg-bgApp flex flex-col items-center pt-12 pb-24 px-4 sm:px-6 lg:px-8">
 
-      <main className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-        
-        {/* 1. ÁREA DE INGESTA */}
-        <section className="rounded-xl border border-ui-border bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="rounded-md border border-ui-border bg-bgGeneral px-3 py-1.5 text-sm text-textDark outline-none focus:ring-2 focus:ring-brandBlue"
-              >
-                {LANGUAGES.map((lang) => (
-                  <option key={lang.value} value={lang.value}>{lang.label}</option>
-                ))}
-              </select>
-              
-              <button 
-                onClick={() => fileRef.current.click()} 
-                className="flex items-center gap-2 rounded-md border border-ui-border bg-bgGeneral px-3 py-1.5 text-sm text-textDark hover:bg-gray-100 transition-colors"
-              >
-                📂 Subir archivo
-              </button>
-              <input ref={fileRef} type="file" className="hidden" onChange={handleFile} />
-            </div>
+      {/* 1. Título y Descripción */}
+      <div className="w-full max-w-4xl mb-8 text-center flex flex-col items-center">
+        <h1 className="text-3xl font-bold text-textMain mb-3">
+          SecGen Assistant
+        </h1>
+        <p className="text-textMuted text-sm max-w-2xl">
+          Pega tu fragmento de código fuente a continuación. Nuestro motor Edge AI analizará
+          la estructura en busca de vulnerabilidades del OWASP Top 10 y debilidades CWE,
+          generando sugerencias de parcheo en tiempo real y con total privacidad.
+        </p>
 
-            {code && <span className="text-xs text-ui-textMuted">{code.split("\n").length} líneas</span>}
-          </div>
-
-          <div className="h-[350px]">
-            <CodeEditor code={code} setCode={setCode} language={language} />
-          </div>
-
-          <div className="mt-4 flex justify-end border-t border-ui-border pt-4">
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading || !code.trim()}
-              className="flex items-center gap-2 rounded-lg bg-brandBlue px-6 py-2 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500 transition-all shadow-sm"
-            >
-              {isLoading ? "⏳ Analizando..." : "▶️ Auditar Código"}
-            </button>
-          </div>
-        </section>
-
-        {/* MENSAJE DE ERROR (ESTILO TARJETA DE ALERTA) */}
         {error && (
-          <div className="rounded-lg border border-alert-main bg-alert-bg px-4 py-3 text-sm font-medium text-alert-main shadow-sm flex items-center gap-2">
-            <span>⚠️</span> {error}
+          <div className="mt-6 p-3 bg-alert/10 border border-alert text-alert rounded-md text-sm flex items-center justify-center gap-2 w-full max-w-2xl text-left">
+            <Shield className="w-4 h-4 shrink-0" />
+            <p>{error}</p>
           </div>
         )}
+      </div>
 
-        {/* 2. PANEL DE RESULTADOS */}
-        {result && (
-          <section ref={resultsRef} className="rounded-xl border border-ui-border bg-white overflow-hidden shadow-sm">
-            
-            <div className="bg-blue-50 border-b border-ui-border p-4">
-              <p className="text-sm font-medium text-brandBlue flex items-center gap-2">
-                📊 {result.resumen}
-              </p>
-            </div>
+      {/* 2. Contenedor Principal de la Aplicación */}
+      <div className="w-full max-w-4xl bg-bgCard rounded-lg shadow-sm border border-uiBorder flex flex-col overflow-hidden transition-all duration-300">
 
-            {result.vulnerabilidades?.length > 0 && (
-              <div className="grid grid-cols-4 border-b border-ui-border bg-bgGeneral">
-                {Object.entries(SEV).map(([sev, config]) => {
-                  const count = result.vulnerabilidades.filter((v) => v.severidad === sev).length;
-                  return (
-                    <div key={sev} className="border-r last:border-0 border-ui-border p-3 text-center">
-                      <p className={`text-2xl font-bold ${config.text}`}>{count}</p>
-                      <p className="text-xs font-medium text-ui-textMuted uppercase tracking-wider mt-1">{sev}</p>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* Controles superiores: selector de lenguaje + carga de archivo */}
+        <div className="flex items-center justify-between gap-3 p-4 border-b border-uiBorder bg-bgCard">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="border border-uiBorder rounded-md text-sm px-3 py-2 text-textMain bg-white focus:outline-none focus:ring-2 focus:ring-coral-mid"
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+
+          <input
+            ref={fileRef}
+            type="file"
+            onChange={handleFile}
+            className="hidden"
+            accept=".js,.jsx,.ts,.tsx,.py,.java,.php,.go,.txt"
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-2 text-sm text-textMuted border border-uiBorder rounded-md px-3 py-2 hover:bg-bgApp transition-colors"
+          >
+            <FolderUp className="w-4 h-4" />
+            Subir archivo
+          </button>
+        </div>
+
+        {/* 3. Contenedor del Editor de Código */}
+        <div className="w-full h-[400px] min-h-[400px] p-4 bg-bgApp">
+          <div className="w-full h-[368px] min-h-[368px] rounded-lg border border-uiBorder overflow-hidden shadow-inner">
+            <CodeEditor
+              code={code}
+              onChange={setCode}
+              language={language}
+            />
+          </div>
+        </div>
+
+        {/* 4. Pie de la tarjeta (Botón Auditar) */}
+        <div className="flex items-center justify-end p-4 border-t border-uiBorder bg-bgCard">
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || !code.trim()}
+            className="bg-brand hover:bg-blue-600 text-white px-6 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Analizando...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Play className="w-4 h-4 fill-current" />
+                Auditar Código
+              </span>
             )}
+          </button>
+        </div>
+      </div>
 
-            <div className="flex border-b border-ui-border bg-bgGeneral">
-              <button
-                onClick={() => setActiveTab("vulns")}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "vulns" ? "border-b-2 border-brandBlue text-brandBlue bg-white" : "text-ui-textMuted hover:text-textDark"}`}
-              >
-                🐞 Vulnerabilidades ({result.vulnerabilidades?.length || 0})
-              </button>
-              <button
-                onClick={() => setActiveTab("diff")}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "diff" ? "border-b-2 border-brandBlue text-brandBlue bg-white" : "text-ui-textMuted hover:text-textDark"}`}
-              >
-                🔍 Vista Diff (Código Parcheado)
-              </button>
+      {/* 5. Resultados */}
+      {result && (
+        <div
+          ref={resultsRef}
+          className="w-full max-w-4xl mt-8 bg-bgCard rounded-lg shadow-sm border border-uiBorder overflow-hidden"
+        >
+          {/* Resumen */}
+          <div className="p-4 border-b border-uiBorder bg-bgApp">
+            <div className="flex items-center gap-2 mb-1">
+              {vulnCount > 0 ? (
+                <AlertTriangle className="w-4 h-4 text-alert-main" />
+              ) : (
+                <ShieldCheck className="w-4 h-4 text-safe-main" />
+              )}
+              <h2 className="text-sm font-semibold text-textMain">Resumen del análisis</h2>
             </div>
+            <p className="text-sm text-textMuted">{result.resumen}</p>
+          </div>
 
-            {activeTab === "vulns" && (
-              result.vulnerabilidades?.length === 0 ? (
-                <div className="p-12 text-center">
-                  <span className="text-5xl mb-4 block">✅</span>
-                  <h3 className="text-lg font-semibold text-safe-main">Código Seguro</h3>
-                  <p className="text-sm text-ui-textMuted mt-2">No se detectaron vulnerabilidades OWASP en el fragmento analizado.</p>
+          {/* Tabs */}
+          <div className="flex border-b border-uiBorder">
+            <button
+              onClick={() => setActiveTab("vulns")}
+              className={`px-4 py-3 text-sm font-medium transition-colors ${activeTab === "vulns"
+                ? "text-brand border-b-2 border-brand"
+                : "text-textMuted hover:text-textMain"
+                }`}
+            >
+              Vulnerabilidades ({vulnCount})
+            </button>
+            <button
+              onClick={() => setActiveTab("diff")}
+              className={`px-4 py-3 text-sm font-medium transition-colors ${activeTab === "diff"
+                ? "text-brand border-b-2 border-brand"
+                : "text-textMuted hover:text-textMain"
+                }`}
+            >
+              Código parcheado
+            </button>
+          </div>
+
+          {/* Contenido: Vulnerabilidades */}
+          {activeTab === "vulns" && (
+            <div className="p-4">
+              {vulnCount === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-safe-main p-3 bg-safe-bg rounded-md">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  No se detectaron vulnerabilidades en el código analizado.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-h-[400px]">
-                  
-                  <div className="border-r border-ui-border p-3 space-y-2 max-h-[500px] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Lista de vulnerabilidades */}
+                  <div className="md:col-span-1 flex flex-col gap-2">
                     {result.vulnerabilidades.map((vuln, i) => {
-                      const s = SEV[vuln.severidad] || SEV.Bajo;
+                      const sev = SEV[vuln.severidad] || SEV.Medio;
                       return (
                         <button
-                          key={i}
+                          key={vuln.id ?? i}
                           onClick={() => setSelVuln(i)}
-                          className={`w-full text-left p-3 rounded-lg border transition-all ${selVuln === i ? "bg-blue-50 border-brandBlue" : "border-transparent hover:bg-bgGeneral"}`}
+                          className={`text-left p-3 rounded-md border transition-colors ${i === selVuln
+                            ? `${sev.bg} ${sev.border}`
+                            : "border-uiBorder hover:bg-bgApp"
+                            }`}
                         >
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`}></span>
-                              <span className={`text-xs font-semibold ${s.text}`}>{vuln.severidad}</span>
-                            </div>
-                            <span className="text-[10px] text-ui-textMuted">{vuln.cwe}</span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`w-2 h-2 rounded-full ${sev.dot}`} />
+                            <span className={`text-xs font-semibold ${sev.text}`}>
+                              {vuln.severidad}
+                            </span>
                           </div>
-                          <p className="text-sm font-medium text-textDark leading-snug line-clamp-2">{vuln.nombre}</p>
+                          <p className="text-sm text-textMain font-medium">{vuln.nombre}</p>
+                          <p className="text-xs text-textMuted">{vuln.cwe}</p>
                         </button>
                       );
                     })}
                   </div>
 
+                  {/* Detalle de la vulnerabilidad seleccionada */}
                   {v && (
-                    <div className="p-6 max-h-[500px] overflow-y-auto">
-                      <div className="flex gap-2 flex-wrap mb-4">
-                        <span className={`px-2.5 py-1 rounded-md border text-xs font-semibold ${SEV[v.severidad]?.bg} ${SEV[v.severidad]?.border} ${SEV[v.severidad]?.text}`}>{v.severidad}</span>
-                        <span className="px-2.5 py-1 rounded-md border border-ui-border bg-bgGeneral text-textDark text-xs">{v.cwe}</span>
-                        <span className="px-2.5 py-1 rounded-md border border-ui-border bg-bgGeneral text-textDark text-xs">{v.id}</span>
-                      </div>
-                      
-                      <h3 className="text-xl font-bold text-textDark mb-2">{v.nombre}</h3>
-                      <p className="text-sm text-ui-textMuted mb-6 leading-relaxed">{v.descripcion}</p>
-
-                      <div className="mb-6">
-                        <h4 className="text-xs font-bold text-ui-textMuted uppercase tracking-wider mb-2">Vector de Ataque</h4>
-                        <div className="bg-alert-bg border border-alert-main rounded-lg p-3">
-                          <p className="text-sm text-alert-main font-medium leading-relaxed m-0">{v.vector}</p>
-                        </div>
+                    <div className="md:col-span-2 border border-uiBorder rounded-md p-4 flex flex-col gap-3">
+                      <div>
+                        <span
+                          className={`inline-block text-xs font-semibold px-2 py-1 rounded ${(SEV[v.severidad] || SEV.Medio).bg
+                            } ${(SEV[v.severidad] || SEV.Medio).text}`}
+                        >
+                          {v.severidad} · {v.cwe}
+                        </span>
+                        <h3 className="text-base font-semibold text-textMain mt-2">{v.nombre}</h3>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div>
-                          <h4 className="text-xs font-bold text-alert-main mb-2">❌ Fragmento Vulnerable</h4>
-                          <pre className="bg-alert-bg border border-alert-main rounded-lg p-3 text-xs text-alert-main font-mono overflow-x-auto whitespace-pre-wrap">{v.linea_original}</pre>
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-safe-main mb-2">✓ Parche Sugerido</h4>
-                          <pre className="bg-safe-bg border border-safe-main rounded-lg p-3 text-xs text-safe-main font-mono overflow-x-auto whitespace-pre-wrap">{v.linea_parcheada}</pre>
-                        </div>
+                      <p className="text-sm text-textMuted">{v.descripcion}</p>
+
+                      <div>
+                        <p className="text-xs font-semibold text-textMain mb-1">Vector de ataque</p>
+                        <p className="text-sm text-textMuted">{v.vector}</p>
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-bold text-ui-textMuted uppercase tracking-wider mb-2">💡 Justificación del Parche</h4>
-                        <p className="text-sm text-textDark leading-relaxed">{v.explicacion_parche}</p>
+                        <p className="text-xs font-semibold text-textMain mb-1">Línea original</p>
+                        <pre className="text-xs bg-alert-bg text-alert-main p-2 rounded-md overflow-x-auto">
+                          {v.linea_original}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-textMain mb-1">Línea parcheada</p>
+                        <pre className="text-xs bg-safe-bg text-safe-main p-2 rounded-md overflow-x-auto">
+                          {v.linea_parcheada}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-textMain mb-1">Explicación del parche</p>
+                        <p className="text-sm text-textMuted">{v.explicacion_parche}</p>
                       </div>
                     </div>
                   )}
                 </div>
-              )
-            )}
+              )}
+            </div>
+          )}
 
-            {activeTab === "diff" && (
-              <div className="p-4">
-                <div className="h-[450px]">
-                  <DiffViewer
-                    original={result.codigo_original || code}
-                    modified={result.codigo_parcheado || code}
-                    language={language}
-                  />
-                </div>
-              </div>
-            )}
-            
-          </section>
-        )}
-      </main>
-    </div>
+          {/* Contenido: Diff */}
+          {activeTab === "diff" && (
+            <div className="p-4">
+              <DiffViewer
+                original={result.codigo_original}
+                modified={result.codigo_parcheado}
+                language={language}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </main>
   );
 }
