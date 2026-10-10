@@ -4,7 +4,7 @@ Auditor de código automatizado basado en Edge AI, diseñado para mitigar riesgo
 
 ## Arquitectura (Topología Descentralizada)
 Este proyecto opera bajo una arquitectura de microservicios en red local (LAN) para garantizar la **privacidad absoluta del código fuente corporativo**:
-- **Nodo 1 (Cliente/App):** Orquestador de contenedores (Docker) corriendo Frontend (Next.js) y Backend API (FastAPI).
+- **Nodo 1 (Cliente/App):** Orquestador de contenedores (Docker) corriendo Frontend (Next.js) y Backend API (FastAPI). (Este repositorio).
 - **Nodo 2 (Edge AI):** Servidor de inferencia dedicado (Ubuntu Server) ejecutando **Ollama** con el modelo `secgen-senior` (Qwen 7B).
 
 ## Despliegue Local
