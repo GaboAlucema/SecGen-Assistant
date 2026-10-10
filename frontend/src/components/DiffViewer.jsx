@@ -6,7 +6,7 @@ export default function DiffViewer({
   original = "",
   modified = "",
   language = "javascript",
-  height = "70vh",
+  height = "100%",
 }) {
   return (
     <div className="rounded-lg border border-grayP-border overflow-hidden">

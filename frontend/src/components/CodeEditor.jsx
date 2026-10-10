@@ -15,9 +15,9 @@ export default function CodeEditor({ code, onChange, language }) {
   };
 
   return (
-    <div className="w-full h-[400px] min-h-[400px] border border-grayP-border rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-coral-mid transition-all">
+    <div className="w-full h-full border border-grayP-border rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-coral-mid transition-all">
       <Editor
-        height="400px"
+        height="100%"
         language={language}
         theme="vs-light"
         value={code}

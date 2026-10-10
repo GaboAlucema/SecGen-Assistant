@@ -12,7 +12,7 @@ app = FastAPI(title="SecGen-Assistant")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://172.18.0.3:3000"],
     allow_credentials=False,    
     allow_methods=["POST", "OPTIONS"],
     allow_headers=["Content-Type"],
