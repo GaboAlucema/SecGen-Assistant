@@ -74,7 +74,10 @@ export default function Home() {
     setResult(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      // API explícita (build) o, por defecto, el mismo host que sirve el front en el puerto del backend.
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        `${window.location.protocol}//${window.location.hostname}:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8000}`;
 
       const response = await fetch(`${baseUrl}/api/audit`, {
         method: "POST",
