@@ -11,7 +11,8 @@ import (
 	"path/filepath"
 )
 
-const apiKey = "sk_live_51H8xYzExampleKeyDoNotUse"
+// Descomentar, Secreto conocido y puesto de manera a proposito
+// const apiKey = "sk_live_51H8xYzExampleKeyDoNotUse"
 
 var db, _ = sql.Open("mysql", "root:root@tcp(db:3306)/app")
 
