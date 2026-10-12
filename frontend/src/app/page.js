@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Shield, FolderUp, Play, AlertTriangle, ShieldCheck, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Shield, FolderUp, Play, AlertTriangle, ShieldCheck } from "lucide-react";
+// Panel lateral (desactivado, pendiente de activar): requiere además PanelLeftClose y PanelLeftOpen
+// import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import DiffViewer from "@/components/DiffViewer";
 
@@ -31,8 +33,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("vulns");
   const [selVuln, setSelVuln] = useState(0);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(256);
+  // Panel lateral (desactivado, pendiente de activar)
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
+  // const [sidebarWidth, setSidebarWidth] = useState(256);
 
   const fileRef = useRef(null);
   const resultsRef = useRef(null);
@@ -43,20 +46,21 @@ export default function Home() {
     }
   }, [result]);
 
-  const startResize = (e) => {
-    e.preventDefault();
-    const onMove = (ev) => {
-      setSidebarWidth(Math.min(480, Math.max(180, ev.clientX)));
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      document.body.style.userSelect = "";
-    };
-    document.body.style.userSelect = "none";
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  };
+  // Redimensionado del panel lateral (desactivado, pendiente de activar)
+  // const startResize = (e) => {
+  //   e.preventDefault();
+  //   const onMove = (ev) => {
+  //     setSidebarWidth(Math.min(480, Math.max(180, ev.clientX)));
+  //   };
+  //   const onUp = () => {
+  //     window.removeEventListener("pointermove", onMove);
+  //     window.removeEventListener("pointerup", onUp);
+  //     document.body.style.userSelect = "";
+  //   };
+  //   document.body.style.userSelect = "none";
+  //   window.addEventListener("pointermove", onMove);
+  //   window.addEventListener("pointerup", onUp);
+  // };
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -113,14 +117,20 @@ export default function Home() {
           <Shield className="w-5 h-5 text-brand" />
           <span className="text-sm font-semibold text-textMain">SecGen Assistant</span>
         </div>
-        {/* Zona de login (pendiente) */}
-        <div className="h-8 w-40 rounded-md border border-dashed border-uiBorder flex items-center justify-center text-xs text-textMuted">
-          Login
-        </div>
+        {/* Zona de login (desactivada, pendiente de activar): el div se mantiene para conservar el espacio reservado.
+            Para activarla, restaurar las clases y el texto de abajo:
+            className="h-8 w-40 rounded-md border border-dashed border-uiBorder flex items-center justify-center text-xs text-textMuted"
+            contenido: Login
+        */}
+        <div className="h-8 w-40" aria-hidden="true" />
       </header>
 
       <div className="flex-1 min-h-0 flex">
-        {/* Panel lateral: expandible/contraíble y redimensionable */}
+        {/* Panel lateral (desactivado, pendiente de activar): expandible/contraíble y redimensionable.
+            Se mantiene un div vacío de 260px (256px del panel + 4px del separador) para conservar el espacio reservado.
+            Para activarlo: descomentar el bloque de abajo, eliminar el div vacío y restaurar los imports,
+            el estado (sidebarOpen, sidebarWidth) y startResize comentados más arriba.
+
         {sidebarOpen && (
           <>
             <aside
@@ -146,8 +156,11 @@ export default function Home() {
             />
           </>
         )}
+        */}
+        <div className="h-full w-[260px] shrink-0" aria-hidden="true" />
 
         <div className="flex-1 min-w-0 h-full flex flex-col items-center overflow-y-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8 relative">
+          {/* Botón para expandir el panel (desactivado junto con el panel lateral):
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}
@@ -157,6 +170,7 @@ export default function Home() {
               <PanelLeftOpen className="w-5 h-5" />
             </button>
           )}
+          */}
 
           {/* Título + contenedor principal agrupados */}
           <div className="w-full max-w-4xl xl:max-w-5xl flex flex-col flex-1">
