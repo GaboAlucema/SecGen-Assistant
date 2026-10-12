@@ -1,24 +1,40 @@
-version: '3.8'
-
+# Cada servicio recibe SOLO las variables que necesita (antes se cargaba todo el .env con env_file,
+# lo que metía las credenciales SSH de los nodos dentro de los contenedores).
 services:
   backend:
     build: ./backend
     container_name: secgen_backend
     ports:
       - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
-    env_file:
-      - .env
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT:-8000}
+      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
+      - OLLAMA_URL=${OLLAMA_URL:?Define OLLAMA_URL en .env}
+      - MODEL_NAME=${MODEL_NAME:-secgen-senior}
+      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT:-900}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-30m}
+      - MAX_CODE_CHARS=${MAX_CODE_CHARS:-15000}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request;urllib.request.urlopen('http://localhost:%s/health'%os.getenv('BACKEND_PORT','8000'),timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - secgen-network
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Vacío = el navegador usa <host que sirve el front>:BACKEND_PORT (funciona desde cualquier equipo de la LAN)
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        BACKEND_PORT: ${BACKEND_PORT:-8000}
     container_name: secgen_frontend
     ports:
       - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
-    env_file:
-      - .env
+    environment:
+      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
     depends_on:
       - backend
     networks:
