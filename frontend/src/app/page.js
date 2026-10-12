@@ -127,8 +127,8 @@ export default function Home() {
 
       <div className="flex-1 min-h-0 flex">
         {/* Panel lateral (desactivado, pendiente de activar): expandible/contraíble y redimensionable.
-            Se mantiene un div vacío de 260px (256px del panel + 4px del separador) para conservar el espacio reservado.
-            Para activarlo: descomentar el bloque de abajo, eliminar el div vacío y restaurar los imports,
+            No reserva espacio: el contenido principal queda centrado en todo el ancho.
+            Para activarlo: descomentar el bloque de abajo y restaurar los imports,
             el estado (sidebarOpen, sidebarWidth) y startResize comentados más arriba.
 
         {sidebarOpen && (
@@ -157,7 +157,6 @@ export default function Home() {
           </>
         )}
         */}
-        <div className="h-full w-[260px] shrink-0" aria-hidden="true" />
 
         <div className="flex-1 min-w-0 h-full flex flex-col items-center overflow-y-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8 relative">
           {/* Botón para expandir el panel (desactivado junto con el panel lateral):
