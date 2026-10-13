@@ -9,11 +9,11 @@ import DiffViewer from "@/components/DiffViewer";
 
 const LANGUAGES = [
   { value: "javascript", label: "JavaScript" },
-  { value: "typescript", label: "TypeScript" },
+//  { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
-  { value: "java", label: "Java" },
-  { value: "php", label: "PHP" },
-  { value: "go", label: "Go" },
+//  { value: "java", label: "Java" },
+//  { value: "php", label: "PHP" },
+//  { value: "go", label: "Go" },
 ];
 
 // Paleta mapeada a las severidades OWASP
