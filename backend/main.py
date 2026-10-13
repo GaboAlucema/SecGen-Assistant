@@ -41,12 +41,13 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="SecGen-Assistant", lifespan=lifespan)
 
-# Orígenes permitidos: localhost + cualquier host de la LAN configurada, solo en el puerto del frontend.
-# Se ajusta con CORS_ORIGIN_REGEX (por defecto 192.168.1.0/24) sin tocar IPs de contenedores.
+# Orígenes permitidos: localhost y cualquier IP privada (10.x, 172.16-31.x, 192.168.x), solo en el puerto del
+# frontend. Así funciona en la LAN de casa y en un hotspot móvil, aunque cambie la subred.
+# Se puede restringir con CORS_ORIGIN_REGEX.
 FRONTEND_PORT = os.getenv("FRONTEND_PORT", "3000")
 CORS_ORIGIN_REGEX = os.getenv(
     "CORS_ORIGIN_REGEX",
-    rf"^http://(localhost|127\.0\.0\.1|192\.168\.1\.\d{{1,3}}):{FRONTEND_PORT}$",
+    rf"^http://(localhost|127\.0\.0\.1|10(\.\d{{1,3}}){{3}}|192\.168(\.\d{{1,3}}){{2}}|172\.(1[6-9]|2\d|3[01])(\.\d{{1,3}}){{2}}):{FRONTEND_PORT}$",
 )
 
 app.add_middleware(
