@@ -32,6 +32,8 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("vulns");
   const [selVuln, setSelVuln] = useState(0);
+  const [progress, setProgress] = useState(null); // último latido del backend: { fase, tokens, hallazgos }
+  const [elapsed, setElapsed] = useState(0); // segundos desde que se pulsó "Auditar"
 
   // Panel lateral (desactivado, pendiente de activar)
   // const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -39,12 +41,26 @@ export default function Home() {
 
   const fileRef = useRef(null);
   const resultsRef = useRef(null);
+  const abortRef = useRef(null);
 
+  // Desplazar a los resultados solo cuando aparecen (no en cada hallazgo que llega por streaming)
+  const hasResults = Boolean(result);
   useEffect(() => {
-    if (result && resultsRef.current) {
+    if (hasResults && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [result]);
+  }, [hasResults]);
+
+  // Cronómetro local mientras se analiza (sigue corriendo aunque el backend tarde en enviar datos)
+  useEffect(() => {
+    if (!isLoading) return;
+    setElapsed(0);
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isLoading]);
+
+  // Al salir de la página se cancela el análisis en curso (el backend corta la generación en el Nodo 2)
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Redimensionado del panel lateral (desactivado, pendiente de activar)
   // const startResize = (e) => {
@@ -71,40 +87,106 @@ export default function Home() {
     e.target.value = "";
   };
 
+  const handleCancel = () => abortRef.current?.abort();
+
+  // Aplica un evento del backend (stream NDJSON) al estado de la pantalla
+  const applyEvent = (ev) => {
+    switch (ev.tipo) {
+      case "progreso":
+        setProgress({ fase: ev.fase, tokens: ev.tokens, hallazgos: ev.hallazgos });
+        break;
+      case "resumen":
+        setResult((r) => (r ? { ...r, resumen: ev.resumen } : r));
+        break;
+      case "vulnerabilidad":
+        setResult((r) => (r ? { ...r, vulnerabilidades: [...r.vulnerabilidades, ev.datos] } : r));
+        break;
+      case "fin": {
+        const { tipo, ...final } = ev;
+        setResult(final);
+        setProgress(null);
+        break;
+      }
+      case "error":
+        throw new Error(ev.detalle || "Error en el motor de inferencia.");
+      default:
+        break; // "inicio" u otros eventos informativos
+    }
+  };
+
   const handleSubmit = async () => {
     if (!code.trim()) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setIsLoading(true);
     setError(null);
-    setResult(null);
+    setProgress(null);
+    // Los resultados aparecen de inmediato y se van completando a medida que llegan los hallazgos
+    setResult({ resumen: "", vulnerabilidades: [], codigo_original: code, codigo_parcheado: null, metricas: null });
+    setSelVuln(0);
+    setActiveTab("vulns");
 
+    let finished = false;
     try {
       // API explícita (build) o, por defecto, el mismo host que sirve el front en el puerto del backend.
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL ||
         `${window.location.protocol}//${window.location.hostname}:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8000}`;
 
-      const response = await fetch(`${baseUrl}/api/audit`, {
+      const response = await fetch(`${baseUrl}/api/audit/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, language }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Error del servidor: ${response.status}`);
+        const detail = typeof errData.detail === "string" ? errData.detail : null;
+        throw new Error(
+          detail ||
+            (response.status === 422
+              ? "El código supera el límite permitido o no es válido."
+              : `Error del servidor: ${response.status}`)
+        );
       }
 
-      const data = await response.json();
-      console.log('DATOS DEL BACKEND:', data);
-      setResult(data);
-      setSelVuln(0);
-      setActiveTab("vulns");
+      // El backend envía un evento JSON por línea; se procesan apenas llegan.
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl;
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          const ev = JSON.parse(line);
+          if (ev.tipo === "fin") finished = true;
+          applyEvent(ev);
+        }
+      }
+      if (!finished) {
+        setError("La conexión se interrumpió antes de terminar el análisis. Se muestran los hallazgos recibidos.");
+      }
     } catch (err) {
-      setError(err.message || "Error desconocido al contactar con el backend.");
+      if (err.name === "AbortError") {
+        setError("Análisis cancelado. Se muestran los hallazgos completados hasta ese momento.");
+      } else {
+        setError(err.message || "Error desconocido al contactar con el backend.");
+      }
     } finally {
       setIsLoading(false);
+      setProgress(null);
     }
   };
+
+  const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
   const v = result?.vulnerabilidades?.[selVuln];
   const vulnCount = result?.vulnerabilidades?.length ?? 0;
@@ -265,17 +347,69 @@ export default function Home() {
               ref={resultsRef}
               className="w-full max-w-4xl xl:max-w-5xl mt-8 mb-6 bg-bgCard rounded-lg shadow-sm border border-uiBorder overflow-hidden shrink-0"
             >
+              {/* Estado en vivo: se muestra mientras el Nodo 2 trabaja */}
+              {isLoading && (
+                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-uiBorder bg-bgCard">
+                  <div className="flex items-center gap-2 text-sm text-textMuted">
+                    <span className="animate-spin h-4 w-4 shrink-0 border-2 border-brand border-t-transparent rounded-full"></span>
+                    {progress?.fase === "analizando" ? (
+                      <span>
+                        Analizando… {vulnCount} {vulnCount === 1 ? "hallazgo" : "hallazgos"} · {progress.tokens} tokens ·{" "}
+                        {fmtTime(elapsed)}
+                      </span>
+                    ) : (
+                      <span>Leyendo el código… {fmtTime(elapsed)}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleCancel}
+                    className="text-xs text-textMuted border border-uiBorder rounded-md px-3 py-1 hover:bg-bgApp transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+
               {/* Resumen */}
               <div className="p-4 border-b border-uiBorder bg-bgApp">
                 <div className="flex items-center gap-2 mb-1">
                   {vulnCount > 0 ? (
                     <AlertTriangle className="w-4 h-4 text-alert-main" />
+                  ) : isLoading ? (
+                    <Shield className="w-4 h-4 text-textMuted" />
                   ) : (
                     <ShieldCheck className="w-4 h-4 text-safe-main" />
                   )}
                   <h2 className="text-sm font-semibold text-textMain">Resumen del análisis</h2>
                 </div>
-                <p className="text-sm text-textMuted">{result.resumen}</p>
+                <p className="text-sm text-textMuted">
+                  {result.resumen || (isLoading ? "Generando resumen…" : "")}
+                </p>
+                {result.metricas && (
+                  <p className="text-xs text-textMuted mt-2">
+                    Completado en {fmtTime(result.metricas.duracion_s)}
+                    {result.metricas.primer_hallazgo_s != null &&
+                      ` · primer hallazgo a los ${Math.round(result.metricas.primer_hallazgo_s)} s`}
+                    {` · ${result.metricas.tokens_generados} tokens (${result.metricas.tokens_por_s} tok/s)`}
+                  </p>
+                )}
+                {(result.metricas?.fuera_de_alcance ?? 0) + (result.metricas?.sin_evidencia ?? 0) > 0 && (
+                  <p className="text-xs text-textMuted mt-1">
+                    {(result.metricas.fuera_de_alcance ?? 0) + (result.metricas.sin_evidencia ?? 0)}{" "}
+                    {(result.metricas.fuera_de_alcance ?? 0) + (result.metricas.sin_evidencia ?? 0) === 1
+                      ? "hallazgo omitido"
+                      : "hallazgos omitidos"}
+                    : fuera del alcance del agente (SQL Injection, XSS, secretos en código, OWASP A01 y A07) o sin
+                    evidencia en el código.
+                  </p>
+                )}
+                {result.metricas?.truncado && (
+                  <p className="text-xs text-warn-text bg-warn-bg border border-warn-main rounded-md p-2 mt-2">
+                    {result.metricas.detenido
+                      ? `Análisis detenido: ${result.metricas.detenido}. Se muestran los hallazgos válidos.`
+                      : "La respuesta del modelo se cortó antes de terminar: se muestran los hallazgos completados."}
+                  </p>
+                )}
               </div>
 
               {/* Tabs */}
@@ -304,10 +438,16 @@ export default function Home() {
               {activeTab === "vulns" && (
                 <div className="p-4">
                   {vulnCount === 0 ? (
-                    <div className="flex items-center gap-2 text-sm text-safe-main p-3 bg-safe-bg rounded-md">
-                      <ShieldCheck className="w-4 h-4 shrink-0" />
-                      No se detectaron vulnerabilidades en el código analizado.
-                    </div>
+                    isLoading ? (
+                      <div className="text-sm text-textMuted p-3 bg-bgApp rounded-md">
+                        Los hallazgos aparecerán aquí a medida que se detecten.
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-safe-main p-3 bg-safe-bg rounded-md">
+                        <ShieldCheck className="w-4 h-4 shrink-0" />
+                        No se detectaron vulnerabilidades en el código analizado.
+                      </div>
+                    )
                   ) : (
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Lista de vulnerabilidades */}
@@ -330,7 +470,10 @@ export default function Home() {
                                 </span>
                               </div>
                               <p className="text-sm text-textMain font-medium">{vuln.nombre}</p>
-                              <p className="text-xs text-textMuted">{vuln.cwe}</p>
+                              <p className="text-xs text-textMuted">
+                                {vuln.cwe}
+                                {vuln.categoria ? ` · ${vuln.categoria}` : ""}
+                              </p>
                             </button>
                           );
                         })}
@@ -345,6 +488,7 @@ export default function Home() {
                                 } ${(SEV[v.severidad] || SEV.Medio).text}`}
                             >
                               {v.severidad} · {v.cwe}
+                              {v.categoria ? ` · ${v.categoria}` : ""}
                             </span>
                             <h3 className="text-base font-semibold text-textMain mt-2">{v.nombre}</h3>
                           </div>
@@ -384,11 +528,17 @@ export default function Home() {
               {/* Contenido: Diff */}
               {activeTab === "diff" && (
                 <div className="p-4">
-                  <DiffViewer
-                    original={result.codigo_original}
-                    modified={result.codigo_parcheado}
-                    language={language}
-                  />
+                  {result.codigo_parcheado == null ? (
+                    <div className="text-sm text-textMuted p-3 bg-bgApp rounded-md">
+                      El código parcheado se genera al terminar el análisis.
+                    </div>
+                  ) : (
+                    <DiffViewer
+                      original={result.codigo_original}
+                      modified={result.codigo_parcheado}
+                      language={language}
+                    />
+                  )}
                 </div>
               )}
             </div>
