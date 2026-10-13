@@ -21,6 +21,7 @@ class Vulnerability(BaseModel):
     linea_original: str = ""
     linea_parcheada: str = ""
     explicacion_parche: str = ""
+    categoria: str = ""  # la asigna el backend a partir del CWE (ver SCOPE_CWES en llm_service)
 
 
 class Metrics(BaseModel):
@@ -30,6 +31,11 @@ class Metrics(BaseModel):
     tokens_por_s: float
     parches_aplicados: int
     parches_no_aplicados: int
+    primer_hallazgo_s: float | None = None
+    truncado: bool = False
+    fuera_de_alcance: int = 0
+    sin_evidencia: int = 0
+    detenido: str | None = None  # motivo si el backend cortó la generación antes de tiempo
 
 
 class PromptResponse(BaseModel):
